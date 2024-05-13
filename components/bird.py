@@ -1,17 +1,16 @@
 import pygame
-import numpy as np
-from components.neural_network import NeuralNetwork
 
 # Game variables
 GRAVITY = 0.25
 BIRD_JUMP = -7.5
 SCREEN_HEIGHT = 600
+SCREEN_WIDTH = 800
 
 
 class Bird(pygame.sprite.Sprite):
     """Class to represent the Bird character in the game."""
 
-    def __init__(self, nn=None):
+    def __init__(self):
         """Initialize the Bird."""
         super().__init__()
         self.image = pygame.Surface((30, 30), pygame.SRCALPHA)
@@ -24,7 +23,6 @@ class Bird(pygame.sprite.Sprite):
         self.angle = 0
         self.score = 0
         self.alive = True
-        self.nn = nn or NeuralNetwork(4, 8, 1)
 
     def update(self):
         """Update the Bird's position and angle."""
@@ -50,36 +48,13 @@ class Bird(pygame.sprite.Sprite):
         # Update hitbox position
         self.hitbox_rect.center = self.rect.center
 
+        # Update score
+        if self.alive:
+            self.score += 1
+
     def jump(self):
         """Make the Bird jump."""
         self.velocity = BIRD_JUMP
-
-    def think(self, pipes):
-        """Make the Bird decide whether to jump."""
-        if not pipes:
-            return
-
-        # Find the nearest pipe
-        nearest_pipe = None
-        for pipe in pipes:
-            if pipe.rect.right > self.rect.left:
-                nearest_pipe = pipe
-                break
-
-        if not nearest_pipe:
-            return
-
-        # Prepare inputs for the neural network
-        inputs = [
-            self.rect.y / SCREEN_HEIGHT,
-            nearest_pipe.rect.top / SCREEN_HEIGHT,
-            nearest_pipe.rect.bottom / SCREEN_HEIGHT,
-            nearest_pipe.rect.left / SCREEN_WIDTH,
-        ]
-
-        output = self.nn.forward(inputs)[0]
-        if output > 0.5:
-            self.jump()
 
     def draw(self, screen):
         """Draw the Bird."""
