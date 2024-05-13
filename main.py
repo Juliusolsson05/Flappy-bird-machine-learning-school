@@ -23,6 +23,7 @@ PIPE_HEIGHT = 500
 PIPE_GAP = 150
 PIPE_VELOCITY = -5
 EDGE_OVERHANG = 8
+PIPE_OFFSET = 100  # Distance from the right edge of the screen to generate pipes
 
 # Set up display
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -134,8 +135,8 @@ def create_pipe():
         tuple: A tuple containing the top and bottom pipes.
     """
     pipe_height = random.randint(100, SCREEN_HEIGHT - PIPE_GAP - 100)
-    top_pipe = Pipe(SCREEN_WIDTH, pipe_height, True)
-    bottom_pipe = Pipe(SCREEN_WIDTH, pipe_height + PIPE_GAP, False)
+    top_pipe = Pipe(SCREEN_WIDTH + PIPE_OFFSET, pipe_height, True)
+    bottom_pipe = Pipe(SCREEN_WIDTH + PIPE_OFFSET, pipe_height + PIPE_GAP, False)
     return top_pipe, bottom_pipe
 
 
