@@ -23,8 +23,6 @@ PIPE_HEIGHT = 500
 PIPE_GAP = 150
 PIPE_VELOCITY = -5
 EDGE_OVERHANG = 8
-ROTATION_SPEED = 5  # Speed of rotation
-MAX_ROTATION = 25  # Maximum angle the bird can tilt upwards or downwards
 
 # Set up display
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -49,28 +47,19 @@ class Bird(pygame.sprite.Sprite):
     def __init__(self):
         """Initialize the Bird."""
         super().__init__()
-        # self.image = bird_image  # Commented out
-        # self.rect = self.image.get_rect(center=(100, SCREEN_HEIGHT // 2))
-        self.image = pygame.Surface((30, 30))
+        self.image = pygame.Surface((30, 30), pygame.SRCALPHA)
         self.image.fill(RED)
-        self.original_image = self.image
+        self.original_image = self.image.copy()
         self.rect = self.image.get_rect(center=(100, SCREEN_HEIGHT // 2))
+        self.hitbox = pygame.Surface((30, 30), pygame.SRCALPHA)  # Invisible hitbox
+        self.hitbox_rect = self.hitbox.get_rect(center=self.rect.center)
         self.velocity = 0
         self.angle = 0
     
     def update(self):
-        """Update the Bird's position and rotation."""
+        """Update the Bird's position and angle."""
         self.velocity += GRAVITY
         self.rect.y += self.velocity
-        
-        # Rotate the bird
-        if self.velocity < 0:
-            self.angle = max(self.angle - ROTATION_SPEED, -MAX_ROTATION)
-        else:
-            self.angle = min(self.angle + ROTATION_SPEED, MAX_ROTATION)
-        
-        self.image = pygame.transform.rotate(self.original_image, self.angle)
-        self.rect = self.image.get_rect(center=self.rect.center)
         
         # Prevent the bird from going off-screen
         if self.rect.top <= 0:
@@ -79,11 +68,24 @@ class Bird(pygame.sprite.Sprite):
         if self.rect.bottom >= SCREEN_HEIGHT:
             self.rect.bottom = SCREEN_HEIGHT
             self.velocity = 0
+        
+        # Rotate the bird
+        self.angle = min(max(self.velocity * -5, -90), 90)
+        self.image = pygame.transform.rotate(self.original_image, self.angle)
+        self.rect = self.image.get_rect(center=self.rect.center)
+        
+        # Update hitbox position
+        self.hitbox_rect.center = self.rect.center
     
     def jump(self):
         """Make the Bird jump."""
         self.velocity = BIRD_JUMP
-        self.angle = -MAX_ROTATION
+    
+    def draw(self, screen):
+        """Draw the Bird."""
+        screen.blit(self.image, self.rect.topleft)
+        # Uncomment the following line to see the hitbox
+        # pygame.draw.rect(screen, (0, 0, 255), self.hitbox_rect, 2)
 
 
 class Pipe(pygame.sprite.Sprite):
@@ -99,9 +101,10 @@ class Pipe(pygame.sprite.Sprite):
             is_top (bool): Whether the pipe is the top pipe.
         """
         super().__init__()
-        # self.image = pygame.transform.flip(pipe_image, False, is_top)  # Commented out
+        # Create the pipe surface
         self.image = pygame.Surface((PIPE_WIDTH, PIPE_HEIGHT))
         self.image.fill(GREEN)
+        # Create the edge of the pipe
         self.edge_image = pygame.Surface((PIPE_WIDTH + EDGE_OVERHANG, 20))
         self.edge_image.fill(DARK_GREEN)
         if is_top:
@@ -125,7 +128,11 @@ class Pipe(pygame.sprite.Sprite):
 
 
 def create_pipe():
-    """Create a pair of pipes (top and bottom) and return them."""
+    """Create a pair of pipes (top and bottom) and return them.
+    
+    Returns:
+        tuple: A tuple containing the top and bottom pipes.
+    """
     pipe_height = random.randint(100, SCREEN_HEIGHT - PIPE_GAP - 100)
     top_pipe = Pipe(SCREEN_WIDTH, pipe_height, True)
     bottom_pipe = Pipe(SCREEN_WIDTH, pipe_height + PIPE_GAP, False)
@@ -169,7 +176,7 @@ def main():
         pipe_group.update()
         
         # Check for collisions
-        if pygame.sprite.spritecollide(bird, pipe_group, False) or bird.rect.bottom >= SCREEN_HEIGHT:
+        if pygame.sprite.spritecollide(bird, pipe_group, False, pygame.sprite.collide_mask) or bird.rect.bottom >= SCREEN_HEIGHT:
             running = False
         
         # Update score
