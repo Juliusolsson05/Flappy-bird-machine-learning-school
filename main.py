@@ -1,5 +1,9 @@
 import pygame
 import random
+from components.bird import Bird
+from components.pipe import Pipe
+from components.cloud import Cloud
+from components.neural_network import NeuralNetwork
 
 # Initialize Pygame
 pygame.init()
@@ -11,30 +15,16 @@ SCREEN_HEIGHT = 600
 # Colors
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
-GREEN = (0, 255, 0)
-RED = (255, 0, 0)
-DARK_GREEN = (0, 200, 0)
 BLUE = (135, 206, 235)  # Sky blue color
 
 # Game variables
-GRAVITY = 0.25
-BIRD_JUMP = -7.5
-PIPE_WIDTH = 80
-PIPE_HEIGHT = 500
-PIPE_GAP = 150
-PIPE_VELOCITY = -5
-EDGE_OVERHANG = 8
 PIPE_OFFSET = 100  # Distance from the right edge of the screen to generate pipes
-CLOUD_SPEED = -1  # Speed at which clouds move to the left
+POPULATION_SIZE = 20  # Number of birds in the population
+PIPE_GAP = 150  # Gap between the top and bottom pipes
 
 # Set up display
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption('Flappy Bird')
-
-# Load images (commented out)
-# bird_image = pygame.image.load('bird.png').convert_alpha()
-# background_image = pygame.image.load('background.png').convert()
-# pipe_image = pygame.image.load('pipe.png').convert_alpha()
 
 # Clock for controlling frame rate
 clock = pygame.time.Clock()
@@ -43,119 +33,6 @@ FPS = 60
 # Font for score display
 font = pygame.font.Font(None, 36)
 large_font = pygame.font.Font(None, 72)
-
-class Cloud:
-    """Class to represent a cloud in the sky."""
-    
-    def __init__(self):
-        """Initialize the Cloud."""
-        self.x = random.randint(0, SCREEN_WIDTH * 2)  # Scattered across twice the screen width
-        self.y = random.randint(50, 200)
-        self.speed = CLOUD_SPEED
-        self.size = random.randint(20, 40)  # Random size for variety
-    
-    def update(self):
-        """Update the Cloud's position."""
-        self.x += self.speed
-        if self.x < -self.size * 2:
-            self.x = random.randint(SCREEN_WIDTH, SCREEN_WIDTH * 2)
-            self.y = random.randint(50, 200)
-    
-    def draw(self, screen):
-        """Draw the Cloud."""
-        # Cloud is made of multiple circles with varying sizes and positions
-        pygame.draw.circle(screen, WHITE, (self.x, self.y), self.size)
-        pygame.draw.circle(screen, WHITE, (self.x + int(self.size * 0.6), self.y + int(self.size * 0.2)), int(self.size * 0.8))
-        pygame.draw.circle(screen, WHITE, (self.x - int(self.size * 0.6), self.y + int(self.size * 0.2)), int(self.size * 0.8))
-        pygame.draw.circle(screen, WHITE, (self.x + int(self.size * 0.4), self.y + int(self.size * 0.5)), int(self.size * 0.6))
-        pygame.draw.circle(screen, WHITE, (self.x - int(self.size * 0.4), self.y + int(self.size * 0.5)), int(self.size * 0.6))
-        pygame.draw.circle(screen, WHITE, (self.x, self.y + int(self.size * 0.6)), int(self.size * 0.7))
-
-
-class Bird(pygame.sprite.Sprite):
-    """Class to represent the Bird character in the game."""
-    
-    def __init__(self):
-        """Initialize the Bird."""
-        super().__init__()
-        self.image = pygame.Surface((30, 30), pygame.SRCALPHA)
-        self.image.fill(RED)
-        self.original_image = self.image.copy()
-        self.rect = self.image.get_rect(center=(100, SCREEN_HEIGHT // 2))
-        self.hitbox = pygame.Surface((30, 30), pygame.SRCALPHA)  # Invisible hitbox
-        self.hitbox_rect = self.hitbox.get_rect(center=self.rect.center)
-        self.velocity = 0
-        self.angle = 0
-    
-    def update(self):
-        """Update the Bird's position and angle."""
-        self.velocity += GRAVITY
-        self.rect.y += self.velocity
-        
-        # Prevent the bird from going off-screen
-        if self.rect.top <= 0:
-            self.rect.top = 0
-            self.velocity = 0
-        if self.rect.bottom >= SCREEN_HEIGHT:
-            self.rect.bottom = SCREEN_HEIGHT
-            self.velocity = 0
-        
-        # Rotate the bird
-        self.angle = min(max(self.velocity * -5, -90), 90)
-        self.image = pygame.transform.rotate(self.original_image, self.angle)
-        self.rect = self.image.get_rect(center=self.rect.center)
-        
-        # Update hitbox position
-        self.hitbox_rect.center = self.rect.center
-    
-    def jump(self):
-        """Make the Bird jump."""
-        self.velocity = BIRD_JUMP
-    
-    def draw(self, screen):
-        """Draw the Bird."""
-        screen.blit(self.image, self.rect.topleft)
-        # Uncomment the following line to see the hitbox
-        # pygame.draw.rect(screen, (0, 0, 255), self.hitbox_rect, 2)
-
-
-class Pipe(pygame.sprite.Sprite):
-    """Class to represent a Pipe in the game."""
-    
-    def __init__(self, x, y, is_top):
-        """
-        Initialize the Pipe.
-        
-        Args:
-            x (int): The x-coordinate of the pipe.
-            y (int): The y-coordinate of the pipe.
-            is_top (bool): Whether the pipe is the top pipe.
-        """
-        super().__init__()
-        # Create the pipe surface
-        self.image = pygame.Surface((PIPE_WIDTH, PIPE_HEIGHT))
-        self.image.fill(GREEN)
-        # Create the edge of the pipe
-        self.edge_image = pygame.Surface((PIPE_WIDTH + EDGE_OVERHANG, 20))
-        self.edge_image.fill(DARK_GREEN)
-        if is_top:
-            self.rect = self.image.get_rect(midbottom=(x, y))
-            self.edge_rect = self.edge_image.get_rect(midbottom=(x, y))
-        else:
-            self.rect = self.image.get_rect(midtop=(x, y))
-            self.edge_rect = self.edge_image.get_rect(midtop=(x, y))
-    
-    def update(self):
-        """Update the Pipe's position."""
-        self.rect.x += PIPE_VELOCITY
-        self.edge_rect.x += PIPE_VELOCITY
-        if self.rect.right < 0:
-            self.kill()
-    
-    def draw(self, screen):
-        """Draw the Pipe and its edge."""
-        screen.blit(self.image, self.rect)
-        screen.blit(self.edge_image, self.edge_rect)
 
 
 def create_pipe():
@@ -267,6 +144,88 @@ def main():
         
         return score
     
+    def simulation_loop():
+        """Run the simulation loop with multiple birds."""
+        nonlocal high_score
+        birds = [Bird() for _ in range(POPULATION_SIZE)]
+        bird_group.empty()
+        for bird in birds:
+            bird_group.add(bird)
+        
+        last_pipe = pygame.time.get_ticks()
+        pipe_interval = 1500  # Milliseconds between pipe generation
+        running = True
+        
+        while running:
+            # Handle events
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    exit()
+            
+            # Add new pipes at regular intervals
+            if pygame.time.get_ticks() - last_pipe > pipe_interval:
+                last_pipe = pygame.time.get_ticks()
+                top_pipe, bottom_pipe = create_pipe()
+                pipe_group.add(top_pipe)
+                pipe_group.add(bottom_pipe)
+            
+            # Update game state
+            bird_group.update()
+            pipe_group.update()
+            for bird in birds:
+                bird.think(pipe_group.sprites())
+            for cloud in clouds:
+                cloud.update()
+            
+            # Check for collisions
+            for bird in birds:
+                if pygame.sprite.spritecollide(bird, pipe_group, False, pygame.sprite.collide_mask) or bird.rect.bottom >= SCREEN_HEIGHT:
+                    bird.alive = False
+            
+            if all(not bird.alive for bird in birds):
+                running = False
+            
+            # Draw everything
+            screen.fill(BLUE)  # Background color for sky
+            for cloud in clouds:
+                cloud.draw(screen)
+            bird_group.draw(screen)
+            for pipe in pipe_group:
+                pipe.draw(screen)
+            
+            # Update display
+            pygame.display.flip()
+            
+            # Control frame rate
+            clock.tick(FPS)
+        
+        # Evaluate performance and evolve birds
+        scores = [bird.score for bird in birds]
+        high_score = max(high_score, max(scores))
+        save_high_score(high_score)
+        new_birds = evolve_birds(birds)
+        bird_group.empty()
+        for bird in new_birds:
+            bird_group.add(bird)
+        return
+    
+    def evolve_birds(birds):
+        """Evolve the birds using a simple genetic algorithm."""
+        scores = [bird.score for bird in birds]
+        sorted_birds = [bird for _, bird in sorted(zip(scores, birds), reverse=True)]
+        best_birds = sorted_birds[:POPULATION_SIZE // 2]
+        
+        new_birds = []
+        for i in range(POPULATION_SIZE):
+            parent1 = random.choice(best_birds)
+            parent2 = random.choice(best_birds)
+            child_nn = parent1.nn.crossover(parent2.nn)
+            child_nn.mutate(0.1)
+            new_birds.append(Bird(nn=child_nn))
+        
+        return new_birds
+    
     def show_menu():
         """Show the start or play-again menu."""
         screen.fill(BLUE)
@@ -282,25 +241,37 @@ def main():
         overlay.fill(BLACK)
         screen.blit(overlay, (0, 0))
 
-        draw_text(screen, "Flappy Bird", large_font, WHITE, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 3)
-        draw_text(screen, "Press SPACE to start", font, WHITE, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
+        draw_text(screen, "Flappy Bird", large_font, WHITE, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 4)
+        draw_text(screen, "Press P to play", font, WHITE, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2.5)
+        draw_text(screen, "Press S to simulate", font, WHITE, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
         draw_text(screen, f"High Score: {high_score}", font, WHITE, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 1.5)
         pygame.display.flip()
         
         waiting = True
+        mode = None
         while waiting:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     exit()
-                if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-                    waiting = False
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_p:
+                        mode = 'play'
+                        waiting = False
+                    if event.key == pygame.K_s:
+                        mode = 'simulate'
+                        waiting = False
+        return mode
     
     # Show the start menu
-    show_menu()
+    mode = show_menu()
     
     while True:
-        score = game_loop()
+        if mode == 'play':
+            score = game_loop()
+        elif mode == 'simulate':
+            simulation_loop()
+        
         screen.fill(BLUE)
         for cloud in clouds:
             cloud.draw(screen)
@@ -314,10 +285,12 @@ def main():
         overlay.fill(BLACK)
         screen.blit(overlay, (0, 0))
 
-        draw_text(screen, "Game Over", large_font, WHITE, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 3)
-        draw_text(screen, f"Score: {score}", font, WHITE, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
-        draw_text(screen, f"High Score: {high_score}", font, WHITE, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 1.5)
-        draw_text(screen, "Press SPACE to play again", font, WHITE, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 1.2)
+        if mode == 'play':
+            draw_text(screen, "Game Over", large_font, WHITE, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 3)
+            draw_text(screen, f"Score: {score}", font, WHITE, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
+            draw_text(screen, f"High Score: {high_score}", font, WHITE, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 1.5)
+        draw_text(screen, "Press P to play again", font, WHITE, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 1.2)
+        draw_text(screen, "Press S to simulate", font, WHITE, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 1.1)
         pygame.display.flip()
         
         waiting = True
@@ -326,15 +299,20 @@ def main():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     exit()
-                if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-                    waiting = False
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_p:
+                        mode = 'play'
+                        waiting = False
+                    if event.key == pygame.K_s:
+                        mode = 'simulate'
+                        waiting = False
                     # Reset game state
                     bird = Bird()
                     bird_group.empty()
                     bird_group.add(bird)
                     pipe_group.empty()
                     clouds = [Cloud() for _ in range(10)]
-    
+
 if __name__ == "__main__":
     main()
 
