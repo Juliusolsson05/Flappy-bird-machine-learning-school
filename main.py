@@ -14,6 +14,7 @@ BLACK = (0, 0, 0)
 GREEN = (0, 255, 0)
 RED = (255, 0, 0)
 DARK_GREEN = (0, 200, 0)
+BLUE = (135, 206, 235)  # Sky blue color
 
 # Game variables
 GRAVITY = 0.25
@@ -24,6 +25,7 @@ PIPE_GAP = 150
 PIPE_VELOCITY = -5
 EDGE_OVERHANG = 8
 PIPE_OFFSET = 100  # Distance from the right edge of the screen to generate pipes
+CLOUD_SPEED = -1  # Speed at which clouds move to the left
 
 # Set up display
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -41,6 +43,31 @@ FPS = 60
 # Font for score display
 font = pygame.font.Font(None, 36)
 
+class Cloud:
+    """Class to represent a cloud in the sky."""
+    
+    def __init__(self):
+        """Initialize the Cloud."""
+        self.x = random.randint(0, SCREEN_WIDTH * 2)  # Scattered across twice the screen width
+        self.y = random.randint(50, 200)
+        self.speed = CLOUD_SPEED
+        self.size = random.randint(20, 40)  # Random size for variety
+    
+    def update(self):
+        """Update the Cloud's position."""
+        self.x += self.speed
+        if self.x < -self.size:
+            self.x = random.randint(SCREEN_WIDTH, SCREEN_WIDTH * 2)
+            self.y = random.randint(50, 200)
+    
+    def draw(self, screen):
+        """Draw the Cloud."""
+        # Cloud is made of multiple circles
+        pygame.draw.circle(screen, WHITE, (self.x, self.y), self.size)
+        pygame.draw.circle(screen, WHITE, (self.x + int(self.size * 0.5), self.y + int(self.size * 0.5)), self.size)
+        pygame.draw.circle(screen, WHITE, (self.x - int(self.size * 0.5), self.y + int(self.size * 0.5)), self.size)
+        pygame.draw.circle(screen, WHITE, (self.x + int(self.size * 0.25), self.y + self.size), self.size)
+        pygame.draw.circle(screen, WHITE, (self.x - int(self.size * 0.25), self.y + self.size), self.size)
 
 class Bird(pygame.sprite.Sprite):
     """Class to represent the Bird character in the game."""
@@ -151,6 +178,9 @@ def main():
     bird = Bird()
     bird_group.add(bird)
     
+    # Create clouds
+    clouds = [Cloud() for _ in range(10)]
+    
     # Initialize variables for game loop
     score = 0
     last_pipe = pygame.time.get_ticks()
@@ -175,6 +205,8 @@ def main():
         # Update game state
         bird_group.update()
         pipe_group.update()
+        for cloud in clouds:
+            cloud.update()
         
         # Check for collisions
         if pygame.sprite.spritecollide(bird, pipe_group, False, pygame.sprite.collide_mask) or bird.rect.bottom >= SCREEN_HEIGHT:
@@ -186,7 +218,9 @@ def main():
                 score += 1
         
         # Draw everything
-        screen.fill(WHITE)  # Background color instead of image
+        screen.fill(BLUE)  # Background color for sky
+        for cloud in clouds:
+            cloud.draw(screen)
         bird_group.draw(screen)
         for pipe in pipe_group:
             pipe.draw(screen)
