@@ -1,5 +1,3 @@
-Sure! Here is the updated README with the `config-feedforward` file included and an explanation of each line:
-
 # Flappy Bird Machine Learning Project
 
 ## Introduction
