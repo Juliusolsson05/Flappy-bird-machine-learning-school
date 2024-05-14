@@ -7,7 +7,6 @@ PIPE_VELOCITY = -5
 EDGE_OVERHANG = 8
 SCREEN_HEIGHT = 600
 
-
 class Pipe(pygame.sprite.Sprite):
     """Class to represent a Pipe in the game."""
 
@@ -33,6 +32,7 @@ class Pipe(pygame.sprite.Sprite):
         else:
             self.rect = self.image.get_rect(midtop=(x, y))
             self.edge_rect = self.edge_image.get_rect(midtop=(x, y))
+        self.passed = False  # Add this line
 
     def update(self):
         """Update the Pipe's position."""

@@ -1,4 +1,5 @@
 import pygame
+import random
 
 # Game variables
 GRAVITY = 0.25
@@ -6,15 +7,18 @@ BIRD_JUMP = -7.5
 SCREEN_HEIGHT = 600
 SCREEN_WIDTH = 800
 
-
 class Bird(pygame.sprite.Sprite):
     """Class to represent the Bird character in the game."""
 
     def __init__(self):
         """Initialize the Bird."""
         super().__init__()
+        
+        # Generate a random dark color for the bird
+        self.color = (random.randint(0, 100), random.randint(0, 100), random.randint(0, 100))
+        
         self.image = pygame.Surface((30, 30), pygame.SRCALPHA)
-        self.image.fill((255, 0, 0))
+        self.image.fill(self.color)
         self.original_image = self.image.copy()
         self.rect = self.image.get_rect(center=(100, SCREEN_HEIGHT // 2))
         self.hitbox = pygame.Surface((30, 30), pygame.SRCALPHA)  # Invisible hitbox
@@ -33,10 +37,11 @@ class Bird(pygame.sprite.Sprite):
         self.rect.y += self.velocity
 
         # Prevent the bird from going off-screen
-        if self.rect.top <= 0:
+        if self.rect.top < 0:
             self.rect.top = 0
             self.velocity = 0
-        if self.rect.bottom >= SCREEN_HEIGHT:
+
+        if self.rect.bottom > SCREEN_HEIGHT:
             self.rect.bottom = SCREEN_HEIGHT
             self.velocity = 0
 
@@ -54,7 +59,8 @@ class Bird(pygame.sprite.Sprite):
 
     def jump(self):
         """Make the Bird jump."""
-        self.velocity = BIRD_JUMP
+        if self.rect.top > 0:  # Only jump if the bird is not at the ceiling
+            self.velocity = BIRD_JUMP
 
     def draw(self, screen):
         """Draw the Bird."""

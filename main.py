@@ -37,11 +37,7 @@ large_font = pygame.font.Font(None, 72)
 
 
 def create_pipe():
-    """Create a pair of pipes (top and bottom) and return them.
-    
-    Returns:
-        tuple: A tuple containing the top and bottom pipes.
-    """
+    """Create a pair of pipes (top and bottom) and return them."""
     pipe_height = random.randint(100, SCREEN_HEIGHT - PIPE_GAP - 100)
     top_pipe = Pipe(SCREEN_WIDTH + PIPE_OFFSET, pipe_height, True)
     bottom_pipe = Pipe(SCREEN_WIDTH + PIPE_OFFSET, pipe_height + PIPE_GAP, False)
@@ -55,41 +51,42 @@ def draw_text(screen, text, font, color, x, y):
     screen.blit(text_surface, text_rect)
 
 
+
 def eval_genomes(genomes, config):
-    """Evaluate the genomes and run the simulation for each generation."""
     nets = []
     birds = []
+    ge = []
+
     for genome_id, genome in genomes:
         net = neat.nn.FeedForwardNetwork.create(genome, config)
         nets.append(net)
-        birds.append(Bird())
-        genome.fitness = 0
+        bird = Bird()
+        bird.jump()  # Initial jump to start the game
+        genome.fitness = 0  # Initial fitness
+        birds.append(bird)
+        ge.append(genome)
 
-    bird_group = pygame.sprite.Group()
+    bird_group = pygame.sprite.Group(*birds)
     pipe_group = pygame.sprite.Group()
-    bird_group.add(*birds)
 
-    last_pipe = pygame.time.get_ticks()
-    pipe_interval = 1500  # Milliseconds between pipe generation
+    pipe_distance = 200  # Distance in pixels between pipes
+    last_pipe_x = SCREEN_WIDTH + PIPE_OFFSET  # Initial position for the first pipe
 
     clouds = [Cloud() for _ in range(10)]
 
     running = True
     while running:
-        # Handle events
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 exit()
 
-        # Add new pipes at regular intervals
-        if pygame.time.get_ticks() - last_pipe > pipe_interval:
-            last_pipe = pygame.time.get_ticks()
+        # Generate new pipes based on distance
+        if len(pipe_group) == 0 or (pipe_group.sprites()[-1].rect.x < SCREEN_WIDTH - pipe_distance):
             top_pipe, bottom_pipe = create_pipe()
             pipe_group.add(top_pipe)
             pipe_group.add(bottom_pipe)
 
-        # Update game state
         bird_group.update()
         pipe_group.update()
         for cloud in clouds:
@@ -104,39 +101,47 @@ def eval_genomes(genomes, config):
                         break
 
                 if nearest_pipe is not None:
-                    output = nets[i].activate((
+                    inputs = (
                         bird.rect.y / SCREEN_HEIGHT,
                         nearest_pipe.rect.top / SCREEN_HEIGHT,
                         nearest_pipe.rect.bottom / SCREEN_HEIGHT,
                         nearest_pipe.rect.left / SCREEN_WIDTH
-                    ))
-
+                    )
+                    output = nets[i].activate(inputs)
                     if output[0] > 0.5:
                         bird.jump()
 
-                genomes[i][1].fitness += 0.1
+                    ge[i].fitness += 0.1  # Reward for staying alive
 
-        # Check for collisions
-        for bird in birds:
-            if bird.alive and (pygame.sprite.spritecollide(bird, pipe_group, False, pygame.sprite.collide_mask) or bird.rect.bottom >= SCREEN_HEIGHT):
+                    if bird.rect.right > nearest_pipe.rect.left and not nearest_pipe.passed:
+                        nearest_pipe.passed = True
+                        ge[i].fitness += 5  # Reward for passing a pipe
+
+            # Check if bird hits the ground, pipe, or ceiling
+            if bird.alive and (
+                    pygame.sprite.spritecollide(bird, pipe_group, False, pygame.sprite.collide_mask)
+                    or bird.rect.bottom >= SCREEN_HEIGHT
+                    or bird.rect.top <= 0  # Check for collision with the ceiling
+            ):
+                ge[i].fitness -= 1  # Penalize for hitting ground, pipe, or ceiling
                 bird.alive = False
+                bird_group.remove(bird)  # Remove dead bird from the sprite group
 
         if all(not bird.alive for bird in birds):
             running = False
 
-        # Draw everything
-        screen.fill(BLUE)  # Background color for sky
+        screen.fill(BLUE)
         for cloud in clouds:
             cloud.draw(screen)
         bird_group.draw(screen)
         for pipe in pipe_group:
             pipe.draw(screen)
 
-        # Update display
         pygame.display.flip()
-
-        # Control frame rate
+        pygame.time.delay(10)
         clock.tick(FPS)
+
+
 
 
 def run(config_file):
@@ -254,6 +259,8 @@ def main():
             save_high_score(high_score)
         
         return score
+
+
     
     def show_menu():
         """Show the start or play-again menu."""
@@ -280,9 +287,7 @@ def main():
         mode = None
         while waiting:
             for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    exit()
+
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_p:
                         mode = 'play'
@@ -291,9 +296,8 @@ def main():
                         mode = 'simulate'
                         waiting = False
         return mode
-   
 
-   # Show the start menu
+    # Show the start menu
     mode = show_menu()
 
     while True:
@@ -302,7 +306,7 @@ def main():
         elif mode == 'simulate':
             config_path = os.path.join(os.path.dirname(__file__), 'config-feedforward.txt')
             run(config_path)
-        
+
         screen.fill(BLUE)
         for cloud in clouds:
             cloud.draw(screen)
@@ -323,7 +327,7 @@ def main():
         draw_text(screen, "Press P to play again", font, WHITE, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 1.2)
         draw_text(screen, "Press S to simulate", font, WHITE, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 1.1)
         pygame.display.flip()
-        
+
         waiting = True
         while waiting:
             for event in pygame.event.get():
