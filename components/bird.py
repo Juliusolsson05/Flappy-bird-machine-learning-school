@@ -1,34 +1,35 @@
 import pygame
 import random
+from typing import Tuple
 
 # Game variables
-GRAVITY = 0.25
-BIRD_JUMP = -7.5
-SCREEN_HEIGHT = 600
-SCREEN_WIDTH = 800
+GRAVITY: float = 0.25
+BIRD_JUMP: float = -7.5
+SCREEN_HEIGHT: int = 600
+SCREEN_WIDTH: int = 800
 
 class Bird(pygame.sprite.Sprite):
     """Class to represent the Bird character in the game."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the Bird."""
         super().__init__()
         
         # Generate a random dark color for the bird
-        self.color = (random.randint(0, 100), random.randint(0, 100), random.randint(0, 100))
+        self.color: Tuple[int, int, int] = (random.randint(0, 100), random.randint(0, 100), random.randint(0, 100))
         
-        self.image = pygame.Surface((30, 30), pygame.SRCALPHA)
+        self.image: pygame.Surface = pygame.Surface((30, 30), pygame.SRCALPHA)
         self.image.fill(self.color)
-        self.original_image = self.image.copy()
-        self.rect = self.image.get_rect(center=(100, SCREEN_HEIGHT // 2))
-        self.hitbox = pygame.Surface((30, 30), pygame.SRCALPHA)  # Invisible hitbox
-        self.hitbox_rect = self.hitbox.get_rect(center=self.rect.center)
-        self.velocity = 0
-        self.angle = 0
-        self.score = 0
-        self.alive = True
+        self.original_image: pygame.Surface = self.image.copy()
+        self.rect: pygame.Rect = self.image.get_rect(center=(100, SCREEN_HEIGHT // 2))
+        self.hitbox: pygame.Surface = pygame.Surface((30, 30), pygame.SRCALPHA)  # Invisible hitbox
+        self.hitbox_rect: pygame.Rect = self.hitbox.get_rect(center=self.rect.center)
+        self.velocity: float = 0
+        self.angle: float = 0
+        self.score: int = 0
+        self.alive: bool = True
 
-    def update(self):
+    def update(self) -> None:
         """Update the Bird's position and angle."""
         if not self.alive:
             return
@@ -57,12 +58,12 @@ class Bird(pygame.sprite.Sprite):
         if self.alive:
             self.score += 1
 
-    def jump(self):
+    def jump(self) -> None:
         """Make the Bird jump."""
         if self.rect.top > 0:  # Only jump if the bird is not at the ceiling
             self.velocity = BIRD_JUMP
 
-    def draw(self, screen):
+    def draw(self, screen: pygame.Surface) -> None:
         """Draw the Bird."""
         screen.blit(self.image, self.rect.topleft)
         # Uncomment the following line to see the hitbox
